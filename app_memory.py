@@ -19,7 +19,9 @@ def app_memory(sound_level=1):
     oled.fill(0)
     oled.text('Memory', 0, 0, 1)
     oled.show()
-    buttons, leds = button_init()
+    buttons, leds = button_init(16)
+    buttons = [buttons[i] for i in [3, 7, 11, 15]]
+    leds = [leds[i] for i in [3, 7, 11, 15]]
     sounds = [int(220*1.4**i) for i in range(1, len(buttons) + 1)]
     seq = []
     while True:
