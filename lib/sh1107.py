@@ -1,5 +1,6 @@
 from machine import Pin, SPI
 import framebuf
+import utime as time
 
 '''
 from machine import Pin, SPI
@@ -12,7 +13,7 @@ oled.show()
 
 _OLED = None
 
-class SH1107(framebuf.FrameBuffer):
+class _SH1107(framebuf.FrameBuffer):
     def __init__(self, width, height, spi, dc, res, cs, external_vcc=False):
         self.rate = 2000000
         dc.init(dc.OUT, value=0)
@@ -22,7 +23,6 @@ class SH1107(framebuf.FrameBuffer):
         self.dc = dc
         self.res = res
         self.cs = cs
-        import time
         self.res(1)
         time.sleep_ms(100)
         self.res(0)
@@ -37,7 +37,7 @@ class SH1107(framebuf.FrameBuffer):
         self.init_display()
 
     def init_display(self):
-        print('init display')
+        print('  >>>  Initializing display  <<<')
         self.write_cmd([
             0xae,
             0xdc, 0x00,
@@ -91,12 +91,29 @@ class SH1107(framebuf.FrameBuffer):
         self.spi.write(bytearray(cmd))
         self.cs(1)
 
+    def text_wrap(self, txt, start=0, strict=False):
+        wrapped = [txt.split()[0]]
+        for word in txt.split()[1:]:
+            if len(wrapped[-1]) + len(word) + 1 > 7:
+                wrapped.append(word)
+            else:
+                wrapped[-1] += ' ' + word
+        if strict:
+            if len(wrapped) > 12 - start:
+                raise ValueError("Text doesn't fit, need taller screen")
+            if any(len(line) > 7 for line in wrapped):
+                raise ValueError("Text doesn't fit, need wider screen")
+        for line in wrapped:
+            self.text(line, 0, start * 10, 1)
+            start += 1
+
+
 def get_oled():
     global _OLED
     if _OLED is None:
         vspi = SPI(1, baudrate=1000000, polarity=0, phase=0, bits=8,
                 firstbit=SPI.MSB, sck=Pin(10), mosi=Pin(11))
-        _OLED = SH1107(64, 128, vspi, dc=Pin(5), res=Pin(4), cs=Pin(13))
+        _OLED = _SH1107(64, 128, vspi, dc=Pin(5), res=Pin(4), cs=Pin(13))
     return _OLED
 
 
