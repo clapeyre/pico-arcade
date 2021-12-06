@@ -1,15 +1,21 @@
 from machine import Pin, I2C, PWM
 import uasyncio as asyncio
 import utime as time
+from ucollections import namedtuple
 from primitives.pushbutton import Pushbutton
 from lib import mcp23017
 
 def button_init(nb=-1):
     i2c = I2C(0, scl=Pin(21), sda=Pin(20))
     #print(i2c.scan(), [hex(i) for i in i2c.scan()])
-    mcp = mcp23017.MCP23017(i2c, 0x27)
-    buttons = [mcp[pin] for pin in range(16)][::2]
-    leds = [mcp[pin] for pin in range(16)][1::2]
+    mcp_yr = mcp23017.MCP23017(i2c, 0x26)
+    mcp_wb = mcp23017.MCP23017(i2c, 0x27)
+    buttons = [mcp_wb[pin] for pin in range(16)][::2]
+    buttons += [mcp_yr[pin] for pin in range(16)][::2]
+    buttons[8:] = buttons[12:] + buttons[8:12]
+    leds = [mcp_wb[pin] for pin in range(16)][1::2]
+    leds += [mcp_yr[pin] for pin in range(16)][1::2]
+    leds[8:] = leds[12:] + leds[8:12]
     #buttons = [mcp[pin] for pin in range(4)]
     #leds = [mcp[15 - pin] for pin in range(4)]
     #buttons = [mcp[pin] for pin in range(6, 10)]
@@ -22,9 +28,17 @@ def button_init(nb=-1):
     return buttons, leds
 
 
+# Colors
+# _Colors = namedtuple("_Colors", ("white", "blue", "red", "yellow"))
+# COLORS = _Colors(*range(4))
+COLORS = ("white", "blue", "red", "yellow")
+
 class LED:
     def __init__(self, pin):
         self.pin = pin
+    
+    def __call__(self):
+        return self.value()
 
     def output(self, *args, **kwargs):
         return self.pin.output(*args, **kwargs)
@@ -74,23 +88,36 @@ class _ArcadeButtons(_ButtonGroup):
         self.buttons = (
             [Pushbutton(self._mcp_wb[pin], sense=1) for pin in range(16)][::2] +
             [Pushbutton(self._mcp_yr[pin], sense=1) for pin in range(16)][::2])
+        self.buttons[8:] = self.buttons[12:] + self.buttons[8:12]
         for but in self.buttons:
             but.pin.input(pull=1)
         self.leds = (
             [LED(self._mcp_wb[pin]) for pin in range(16)][1::2] +
             [LED(self._mcp_yr[pin]) for pin in range(16)][1::2])
+        self.leds[8:] = self.leds[12:] + self.leds[8:12]
+        self.size = len(self.buttons)
         self.pressed_flag = None
+        self.color = [j for i in range(4) for j in [COLORS[i]] * 4]
         if pressed_flag:
             self.pressed_flag_behaviour()
+
+    def items(self, color=None):
+        if color is None:
+            return zip(self.buttons, self.leds)
+        else:
+            indices = [i for i, c in enumerate(self.color) if c == color]
+            return zip([b for i, b in enumerate(self.buttons) if i in indices],
+                       [l for i, l in enumerate(self.leds) if i in indices])
 
     @property
     def pressed(self):
         return [idx for idx, flag in enumerate(self.pressed_flag) if flag]
     
     def pressed_flag_behaviour(self):
-        self.pressed_flag = [False,] * len(self.buttons)
-        for i, but in enumerate(self.buttons):
-            but.press_func(self._press, (i,))
+        if self.pressed_flag is None:
+            self.pressed_flag = [False,] * len(self.buttons)
+            for i, but in enumerate(self.buttons):
+                but.press_func(self._press, (i,))
     
     def off(self):
         [led.off() for led in self.leds]
@@ -115,9 +142,10 @@ class _ControlPanel(_ButtonGroup):
         return [key for key, flag in self.pressed_flag.items() if flag]
     
     def pressed_flag_behaviour(self):
-        self.pressed_flag = {key: False for key in self.names}
-        for i, but in enumerate(self.buttons):
-            but.press_func(self._press, (self.names[i],))
+        if self.pressed_flag is None:
+            self.pressed_flag = {key: False for key in self.names}
+            for i, but in enumerate(self.buttons):
+                but.press_func(self._press, (self.names[i],))
     
 
 _ARCADEBUTTONS = None
@@ -128,6 +156,7 @@ def get_arcadebuttons(pressed_flag=False):
     global _ARCADEBUTTONS
     if _ARCADEBUTTONS is None:
         _ARCADEBUTTONS = _ArcadeButtons()
+        #asyncio.create_task(_ARCADEBUTTONS.run(1))
     if pressed_flag:
         _ARCADEBUTTONS.pressed_flag_behaviour()
     return _ARCADEBUTTONS
@@ -137,6 +166,7 @@ def get_controlpanel(pressed_flag=False):
     global _CONTROLPANEL
     if _CONTROLPANEL is None:
         _CONTROLPANEL = _ControlPanel()
+        asyncio.create_task(_CONTROLPANEL.run(1))
     if pressed_flag:
         _CONTROLPANEL.pressed_flag_behaviour()
     return _CONTROLPANEL
