@@ -1,26 +1,25 @@
-import utime
-import uasyncio
-from lib.buttons import button_init, on, off
+import utime as time
+import uasyncio as asyncio
+from lib.buttons import button_init, on, off, get_arcadebuttons, COLORS
 from lib.sh1107 import get_oled
 from app_memory import app_memory
 from app_light_chaser import app_light_chaser
 from app_buzzer import app_buzzer
+from app_marcels_quest import app_marcels_quest
 
 
-def start_sequence():
-    _, leds = button_init()
-    list(map(on, leds))
-    for led in leds:
-        utime.sleep(0.5)
-        off(led)
-    list(map(on, leds))
-    utime.sleep(0.5)
+async def start_sequence():
+    arcade = get_arcadebuttons(pressed_flag=True)
+    arcade.on()
+    time.sleep_ms(500)
+    for color in COLORS:
+        for _, led in arcade.items(color=color):
+            led.off()
+        time.sleep_ms(500)
     print(" >> Go Go Go! <<")
-    list(map(off, leds))
 
-def main():
+async def main():
     buttons, leds = button_init()
-    b1, b2, b3, b4 = buttons
     oled = get_oled()
 
     while True:
@@ -29,35 +28,35 @@ def main():
         oled.show()
         for _ in range(2):
             list(map(off, leds))
-            utime.sleep_ms(200)
+            time.sleep_ms(200)
             list(map(on, leds))
-            utime.sleep_ms(200)
+            time.sleep_ms(200)
         while all([b.value() for b in buttons]):
-            utime.sleep(0.01)
-        if not b1.value():
-            start_sequence()
-            app_light_chaser()
-        elif not b2.value():
-            start_sequence()
-            app_light_chaser(hardcore=True)
-        elif not b3.value():
-            start_sequence()
+            time.sleep(0.01)
+        if not buttons[0].value():
+            asyncio.run(start_sequence())
+            asyncio.run(app_light_chaser())
+        elif not buttons[1].value():
+            asyncio.run(start_sequence())
+            asyncio.run(app_light_chaser(hardcore=True))
+        elif not buttons[2].value():
+            asyncio.run(start_sequence())
             app_memory(sound_level=0)
-        #elif not allb[-1].value():
-        #    uasyncio.run(app_buzzer())
-        else:
-            start_sequence()
+        elif not buttons[3].value():
+            asyncio.run(start_sequence())
             app_memory()
+        elif not buttons[4].value():
+            asyncio.run(app_buzzer())
+        elif not buttons[5].value():
+            asyncio.run(app_marcels_quest())
+        elif not buttons[15].value():
+            list(map(off, leds))
+            return
 
-        utime.sleep(1)
-        oled.text("Touchez un", 0, 70, 1)
-        oled.text("bouton", 0, 80, 1)
-        oled.text("pour", 0, 90, 1)
-        oled.text("revenir", 0, 100, 1)
-        oled.text("au menu", 0, 110, 1)
+        oled.text_wrap("Touchez un bouton pour revenir au menu", 7)
         oled.show()
         while all([b.value() for b in buttons]):
-            utime.sleep(0.05)
+            time.sleep(0.05)
 
 if __name__ == '__main__':
-    main()       
+    asyncio.run(main())
