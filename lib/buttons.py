@@ -3,13 +3,14 @@ import uasyncio as asyncio
 import utime as time
 from ucollections import namedtuple
 from primitives.pushbutton import Pushbutton
-from lib import mcp23017
+from drivers.mcp23017 import MCP23017
+from drivers.i2c import I2C0
 
 def button_init(nb=-1):
     i2c = I2C(0, scl=Pin(21), sda=Pin(20))
     #print(i2c.scan(), [hex(i) for i in i2c.scan()])
-    mcp_yr = mcp23017.MCP23017(i2c, 0x26)
-    mcp_wb = mcp23017.MCP23017(i2c, 0x27)
+    mcp_yr = MCP23017(i2c, 0x26)
+    mcp_wb = MCP23017(i2c, 0x27)
     buttons = [mcp_wb[pin] for pin in range(16)][::2]
     buttons += [mcp_yr[pin] for pin in range(16)][::2]
     buttons[8:] = buttons[12:] + buttons[8:12]
@@ -26,6 +27,25 @@ def button_init(nb=-1):
         buttons = buttons[:nb]
         leds = leds[:nb]
     return buttons, leds
+
+
+def array_to_index(x, y):
+    """
+    Relate (x, y) pos to the 0 - 15 buttons
+         ..  
+       0 1 2 3 y
+     0 o o o o
+     1 o o o o
+     2 o o o o
+     3 o o o o
+     x 
+    """
+    return y * 4 + x
+
+
+def index_to_array(idx):
+    """Simple inverse of array_to_index"""
+    return idx % 4, idx // 4
 
 
 # Colors
@@ -81,10 +101,10 @@ class _ButtonGroup:
     
 
 class _ArcadeButtons(_ButtonGroup):
-    def __init__(self, pressed_flag=False):
-        self._i2c = I2C(0, scl=Pin(21), sda=Pin(20))
-        self._mcp_yr = mcp23017.MCP23017(self._i2c, 0x26)
-        self._mcp_wb = mcp23017.MCP23017(self._i2c, 0x27)
+    def __init__(self, pressed_flag=True):
+        self._i2c = I2C0
+        self._mcp_yr = MCP23017(self._i2c, 0x26)
+        self._mcp_wb = MCP23017(self._i2c, 0x27)
         self.buttons = (
             [Pushbutton(self._mcp_wb[pin], sense=1) for pin in range(16)][::2] +
             [Pushbutton(self._mcp_yr[pin], sense=1) for pin in range(16)][::2])
@@ -127,9 +147,9 @@ class _ArcadeButtons(_ButtonGroup):
     
 
 class _ControlPanel(_ButtonGroup):
-    def __init__(self, pressed_flag=False):
+    def __init__(self, pressed_flag=True):
         pins = [3, 6, 7, 8, 9]
-        self.names = "up select right left down".split()
+        self.names = "up select right down left".split()
         self.buttons = [self.up, self.select, self.right, self.left, self.down] = [
             Pushbutton(Pin(pin, Pin.IN, Pin.PULL_UP))
             for pin in pins]
@@ -195,10 +215,10 @@ def blink(led, up, down, times):
 
 
 async def _test():
-    arcade = get_arcadebuttons(pressed_flag=True)
+    arcade = get_arcadebuttons()
     arcade.off()
     asyncio.create_task(arcade.run(5))
-    cp = get_controlpanel(pressed_flag=True)
+    cp = get_controlpanel()
     asyncio.create_task(cp.run(5))
 
     #async def _debug():
