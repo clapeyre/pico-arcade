@@ -1,21 +1,24 @@
+from drivers.buzzer import Buzzer
+from drivers.sh1107 import SH1107_I2C
 from lib.buttons import button_init, on, off
-from lib.buzzer import buzzer
-from lib.sh1107 import get_oled
-import utime
-import urandom
+from lib.score import DigitalScorer
+import utime as time
+import urandom as random
 import uasyncio as asyncio
 
 def flash(led, tone, lvl):
+    buzzer = Buzzer()
     buzzer.start_tone(tone, lvl)
     on(led)
-    utime.sleep_ms(300)
+    time.sleep_ms(300)
     buzzer.end_tone()
     off(led)
-    utime.sleep_ms(100)
+    time.sleep_ms(100)
 
 def app_memory(sound_level=1):
     print("Bienvenue dans le memory 2.0!")
-    oled = get_oled()
+    buzzer = Buzzer()
+    oled = SH1107_I2C()
     oled.fill(0)
     oled.text('Memory', 0, 0, 1)
     oled.show()
@@ -26,7 +29,7 @@ def app_memory(sound_level=1):
     seq = []
     while True:
         while True:
-            rnd = urandom.randint(0, len(leds) - 1)
+            rnd = random.randint(0, len(leds) - 1)
             three_in_row = [rnd != s for s in seq[-3:]]
             if any(three_in_row) or not three_in_row:
                 break
@@ -52,19 +55,22 @@ def app_memory(sound_level=1):
                         oled.text('Score:', 0, 20, 1)
                         oled.text(f'  {len(seq) - 1}', 0, 40, 1)
                         oled.show()
+                        d = DigitalScorer()
+                        asyncio.run(d.interruptable_score(len(seq) - 1))
+                        time.sleep_ms(500)
                         return
                     while not button.value():
-                        utime.sleep_ms(10)
+                        time.sleep_ms(10)
                     off(leds[idx])
                     buzzer.end_tone()
-            utime.sleep_ms(10)
-        utime.sleep_ms(200)
+            time.sleep_ms(10)
+        time.sleep_ms(200)
 
 if __name__ == '__main__':
     buttons, leds = button_init()
     while True:
         app_memory()
-        utime.sleep(0.3)
+        time.sleep(0.3)
         while buttons[0].value():
-            utime.sleep(0.01)
+            time.sleep(0.01)
             
