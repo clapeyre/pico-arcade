@@ -1,8 +1,14 @@
 from machine import Pin, PWM
 import utime as time
 import uasyncio as asyncio
+from lib.tools import singleton
 
-class _Buzzer(PWM):
+
+@singleton
+class Buzzer(PWM):
+    def __init__(self):
+        super().__init__(Pin(14))
+
     async def tone(self, frequency, duration, level=0.2):
         self.freq(frequency)
         self.duty_u16(int(0.95 * level * 65535))
@@ -10,24 +16,15 @@ class _Buzzer(PWM):
         self.duty_u16(0)
 
     def start_tone(self, frequency, level=0.2):
-        self.freq(frequency)
+        self.freq(int(frequency))
         self.duty_u16(int(0.95 * level * 65535))
 
     def end_tone(self):
         self.duty_u16(0)
 
 
-_BUZZER = None
-
-def get_buzzer():
-    global _BUZZER
-    if _BUZZER is None:
-        _BUZZER = _Buzzer(Pin(14))
-    return _BUZZER
-
-buzzer = get_buzzer()
-
 if __name__ == '__main__':
+    buzzer = Buzzer()
     buzzer.tone(440, 250, 1)
     #buzzer.tone(440, 250, 0.5)
     #buzzer.tone(440, 250, 0.1)
