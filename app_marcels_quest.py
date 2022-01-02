@@ -1,7 +1,7 @@
 import uasyncio as asyncio
 import utime as time
 import urandom as random
-from lib.buzzer import buzzer
+from drivers.buzzer import Buzzer
 from lib.buttons import get_arcadebuttons, get_controlpanel
 
 
@@ -10,6 +10,7 @@ class Song:
         self.tunes = (220, 220*1.414, 440, 440*1.414, 880)
         self.seq = []
         self.max_len = max_len
+        self.buzzer = Buzzer()
 
     def incr(self):
         if len(self.seq) < 2 * self.max_len:
@@ -17,7 +18,7 @@ class Song:
 
     async def play(self):
         for tone, level in self.seq:
-            await asyncio.create_task(buzzer.tone(int(tone), 100, level))
+            await self.buzzer.tone(int(tone), 100, level)
 
 
 async def app_marcels_quest():
@@ -51,6 +52,9 @@ async def app_marcels_quest():
         await asyncio.create_task(song.play())
         arcade.leds[rnd].off()
         arcade.reset_flags()
+
+def menu_marcels_quest():
+    asyncio.run(app_marcels_quest())
             
 
 if __name__ == '__main__':
