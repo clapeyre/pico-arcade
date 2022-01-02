@@ -1,8 +1,8 @@
 import uasyncio as asyncio
 import urandom as random
-from lib.buzzer import get_buzzer
+from drivers.buzzer import Buzzer
+from drivers.sh1107 import SH1107_I2C
 from lib.buttons import get_arcadebuttons, get_controlpanel
-from lib.sh1107 import get_oled
 
 
 async def buzz(color):
@@ -11,7 +11,7 @@ async def buzz(color):
              "red": [220, 220*1.414, 220, 440, 220, 440*1.414],
              "yellow": [220, 220*1.414, 220, 440, 220, 440*1.414][::-1],
              }
-    buzzer = get_buzzer()
+    buzzer = Buzzer()
     for tone in tunes[color]:
         await asyncio.create_task(buzzer.tone(int(tone), 60, 0.1))
 
@@ -25,7 +25,7 @@ async def app_buzzer():
     cp = get_controlpanel(pressed_flag=True)
     cp.reset_flags()
 
-    oled = get_oled()
+    oled = SH1107_I2C()
     print("  >>>  Ready to buzz?  <<<")
     oled.fill(0)
     oled.text("Buzz!", 0, 0, 1)
