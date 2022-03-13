@@ -16,14 +16,40 @@ async def buzz(color):
         await asyncio.create_task(buzzer.tone(int(tone), 60, 0.1))
 
 
-async def app_buzzer():
-    print('  >>>  Bienvenue dans le buzzer!  <<<')
-
-    arcade = get_arcadebuttons(pressed_flag=True)
+async def _mainloop():
+    arcade = get_arcadebuttons()
     arcade.reset_flags()
     arcade.on()
-    cp = get_controlpanel(pressed_flag=True)
-    cp.reset_flags()
+    ready = True
+    while True:
+        if arcade.pressed:
+            if ready:
+                arcade.off()
+                choice = 0
+                if len(arcade.pressed) > 1:
+                    # 2 presses detected. Choose at random.
+                    choice = random.randint(0, len(arcade.pressed)-1)
+                idx = arcade.pressed[choice]
+                await asyncio.gather(
+                    buzz(arcade.color[idx]),
+                    arcade.leds[idx].blink(100, 100, 3))
+                arcade.leds[idx].on()
+                await asyncio.sleep_ms(1000)
+                arcade.reset_flags()
+                ready = False
+            else:
+                for _ in range(2):
+                    arcade.off()
+                    await asyncio.sleep_ms(100)
+                    arcade.on()
+                    await asyncio.sleep_ms(100)
+                arcade.reset_flags()
+                ready = True
+        await asyncio.sleep(0)
+
+
+async def app_buzzer():
+    print('  >>>  Welcome to the buzzer!  <<<')
 
     oled = SH1107_I2C()
     print("  >>>  Ready to buzz?  <<<")
@@ -31,38 +57,16 @@ async def app_buzzer():
     oled.text("Buzz!", 0, 0, 1)
     oled.show()
 
-    while 'select' not in cp.pressed:
-        while not arcade.pressed:
-            await asyncio.sleep_ms(1)
+    main = asyncio.create_task(_mainloop())
 
-        if arcade.pressed:
-            arcade.off()
-            choice = 0
-            if len(arcade.pressed) > 1:
-                # This shouldn't happen...
-                oled.text('E ' + str(arcade.pressed), 0, 120, 1)
-                oled.show()
-                choice = random.randint(0, len(arcade.pressed)-1)
-            idx = arcade.pressed[choice]
-            await asyncio.gather(
-                buzz(arcade.color[idx]),
-                arcade.leds[idx].blink(100, 100, 3))
-            arcade.leds[idx].on()
-            await asyncio.sleep_ms(200)
-            arcade.reset_flags()
-        
-            while not arcade.pressed:
-                if 'select' in cp.pressed:
-                    return
-                await asyncio.sleep_ms(20)
-            await asyncio.sleep_ms(500)
-            for _ in range(2):
-                arcade.off()
-                await asyncio.sleep_ms(100)
-                arcade.on()
-                await asyncio.sleep_ms(100)
-            arcade.reset_flags()
-    arcade.off()
+    cp = get_controlpanel()
+    cp.reset_flags()
+
+    while True:
+        if 'select' in cp.pressed:
+            main.cancel()
+            return
+        await asyncio.sleep_ms(0)
 
 if __name__ == '__main__':
     asyncio.run(app_buzzer())
