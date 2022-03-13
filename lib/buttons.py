@@ -1,10 +1,12 @@
-from machine import Pin, I2C, PWM
+from machine import Pin, I2C
 import uasyncio as asyncio
 import utime as time
-from ucollections import namedtuple
 from primitives.pushbutton import Pushbutton
 from drivers.mcp23017 import MCP23017
 from drivers.i2c import I2C0
+
+DEBUG = True
+
 
 def button_init(nb=-1):
     i2c = I2C(0, scl=Pin(21), sda=Pin(20))
@@ -49,8 +51,6 @@ def index_to_array(idx):
 
 
 # Colors
-# _Colors = namedtuple("_Colors", ("white", "blue", "red", "yellow"))
-# COLORS = _Colors(*range(4))
 COLORS = ("white", "blue", "red", "yellow")
 
 class LED:
@@ -82,6 +82,7 @@ class LED:
             self.off()
             await asyncio.sleep_ms(down)
 
+
 class _ButtonGroup:
     def __getitem__(self, key):
         return self.pressed_flag[key]
@@ -90,36 +91,75 @@ class _ButtonGroup:
         self.pressed_flag[key] = val
     
     def _press(self, key):
+        if DEBUG:
+            print("PRESSED", key)
         self.pressed_flag[key] = True
+    
+    def _release(self, key):
+        if DEBUG:
+            print("RELEASED", key)
+        self.released_flag[key] = True
 
     def reset_flags(self):
-        for key in self.pressed:
-            self[key] = False
+        self.reset_pressed()
+        self.reset_released()
 
-    async def run(self, loop_delay=20):
-        await asyncio.sleep(loop_delay)  # Dummy..?
-    
 
 class _ArcadeButtons(_ButtonGroup):
-    def __init__(self, pressed_flag=True):
+    def __init__(self):
         self._i2c = I2C0
         self._mcp_yr = MCP23017(self._i2c, 0x26)
         self._mcp_wb = MCP23017(self._i2c, 0x27)
+
         self.buttons = (
             [Pushbutton(self._mcp_wb[pin], sense=1) for pin in range(16)][::2] +
             [Pushbutton(self._mcp_yr[pin], sense=1) for pin in range(16)][::2])
         self.buttons[8:] = self.buttons[12:] + self.buttons[8:12]
-        for but in self.buttons:
+        self.size = len(self.buttons)
+        self.reset_flags()
+        for i, but in enumerate(self.buttons):
             but.pin.input(pull=1)
+            but.press_func(self._press, (i,))
+            but.release_func(self._release, (i,))
+
         self.leds = (
             [LED(self._mcp_wb[pin]) for pin in range(16)][1::2] +
             [LED(self._mcp_yr[pin]) for pin in range(16)][1::2])
         self.leds[8:] = self.leds[12:] + self.leds[8:12]
-        self.size = len(self.buttons)
-        self.pressed_flag = None
+
         self.color = [j for i in range(4) for j in [COLORS[i]] * 4]
-        if pressed_flag:
-            self.pressed_flag_behaviour()
+        
+    def __str__(self):
+        """ Nice view of board
+        
+        O for on, . for off:
+
+        O O . .
+        . . . O
+        . . O O
+        . O . O
+        """
+        mapping = {True: ' O', False: ' .'}
+        out = ""
+        for x in range(4):
+            for y in range(4):
+                out += mapping[self.leds[array_to_index(x, y)]()]
+            out += '\n'
+        return out
+
+    @property
+    def pressed(self):
+        return [idx for idx, flag in enumerate(self.pressed_flag) if flag]
+    
+    @property
+    def released(self):
+        return [idx for idx, flag in enumerate(self.released_flag) if flag]
+
+    def reset_pressed(self):
+        self.pressed_flag = [False,] * self.size
+    
+    def reset_released(self):
+        self.released_flag = [False,] * self.size
 
     def items(self, color=None):
         if color is None:
@@ -128,16 +168,6 @@ class _ArcadeButtons(_ButtonGroup):
             indices = [i for i, c in enumerate(self.color) if c == color]
             return zip([b for i, b in enumerate(self.buttons) if i in indices],
                        [l for i, l in enumerate(self.leds) if i in indices])
-
-    @property
-    def pressed(self):
-        return [idx for idx, flag in enumerate(self.pressed_flag) if flag]
-    
-    def pressed_flag_behaviour(self):
-        if self.pressed_flag is None:
-            self.pressed_flag = [False,] * len(self.buttons)
-            for i, but in enumerate(self.buttons):
-                but.press_func(self._press, (i,))
     
     def off(self):
         [led.off() for led in self.leds]
@@ -147,48 +177,48 @@ class _ArcadeButtons(_ButtonGroup):
     
 
 class _ControlPanel(_ButtonGroup):
-    def __init__(self, pressed_flag=True):
+    def __init__(self):
         pins = [3, 6, 7, 8, 9]
         self.names = "up select right down left".split()
         self.buttons = [self.up, self.select, self.right, self.left, self.down] = [
             Pushbutton(Pin(pin, Pin.IN, Pin.PULL_UP))
             for pin in pins]
-        self.pressed_flag = None
-        if pressed_flag:
-            self.pressed_flag_behaviour()
-
+        self.reset_flags()
+        for i, but in enumerate(self.buttons):
+            but.press_func(self._press, (self.names[i],))
+            but.release_func(self._release, (self.names[i],))
+    
     @property
     def pressed(self):
         return [key for key, flag in self.pressed_flag.items() if flag]
     
-    def pressed_flag_behaviour(self):
-        if self.pressed_flag is None:
-            self.pressed_flag = {key: False for key in self.names}
-            for i, but in enumerate(self.buttons):
-                but.press_func(self._press, (self.names[i],))
+    @property
+    def released(self):
+        return [key for key, flag in self.released_flag.items() if flag]
     
+    def reset_pressed(self):
+        self.pressed_flag = {key: False for key in self.names}
+    
+    def reset_released(self):
+        self.released_flag = {key: False for key in self.names}
+
+
 
 _ARCADEBUTTONS = None
 _CONTROLPANEL = None
 
 
-def get_arcadebuttons(pressed_flag=False):
+def get_arcadebuttons():
     global _ARCADEBUTTONS
     if _ARCADEBUTTONS is None:
         _ARCADEBUTTONS = _ArcadeButtons()
-        #asyncio.create_task(_ARCADEBUTTONS.run(1))
-    if pressed_flag:
-        _ARCADEBUTTONS.pressed_flag_behaviour()
     return _ARCADEBUTTONS
 
 
-def get_controlpanel(pressed_flag=False):
+def get_controlpanel():
     global _CONTROLPANEL
     if _CONTROLPANEL is None:
         _CONTROLPANEL = _ControlPanel()
-        asyncio.create_task(_CONTROLPANEL.run(1))
-    if pressed_flag:
-        _CONTROLPANEL.pressed_flag_behaviour()
     return _CONTROLPANEL
 
 
@@ -210,8 +240,6 @@ def blink(led, up, down, times):
         time.sleep(up)
         led.output(val=0)
         time.sleep(down)
-
-
 
 
 async def _test():
