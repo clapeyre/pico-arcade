@@ -20,7 +20,7 @@ class Symmetry:
         while sum(a for line in self.pattern for a in line) < proportion * 8:
             self.pattern[random.randint(0, 1)][random.randint(0, 3)] = True
     
-        arcade = get_arcadebuttons(pressed_flag=True)
+        arcade = get_arcadebuttons()
         arcade.off()
         for x in range(2):
             for y in range(4):
@@ -39,11 +39,11 @@ class Symmetry:
 async def app_symmetry():
     print("  >>>  Welcome to Symmetry !  <<<")
 
-    arcade = get_arcadebuttons(pressed_flag=True)
+    arcade = get_arcadebuttons()
     arcade.reset_flags()
     arcade.off()
 
-    cp = get_controlpanel(pressed_flag=True)
+    cp = get_controlpanel()
     cp.reset_flags()
 
     oled = SH1107_I2C()

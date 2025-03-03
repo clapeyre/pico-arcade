@@ -19,7 +19,7 @@ async def app_light_chaser(hardcore=False, timer=20_000, nleds=3):
     oled.show()
     score = 0
     start = time.ticks_ms()
-    arcade = get_arcadebuttons(pressed_flag=True)
+    arcade = get_arcadebuttons()
     arcade.reset_flags()
     arcade.off()
 
@@ -89,7 +89,7 @@ async def test():
         asyncio.run(app_light_chaser(timer=1000))
         time.sleep(1)
         print('monitor restart')
-        arcade = get_arcadebuttons(pressed_flag=True)
+        arcade = get_arcadebuttons()
         arcade.reset_flags()
         while not arcade.pressed:
             await asyncio.sleep_ms(1)

@@ -6,7 +6,7 @@ from lib.music import Music, SONGS
 
 
 async def light_square(size=None):
-    arcade = get_arcadebuttons(pressed_flag=True)
+    arcade = get_arcadebuttons()
     arcade.off()
 
     if size:
@@ -34,11 +34,11 @@ async def light_square(size=None):
 async def app_marcels_frogs():
     print("  >>>  Bienvenue dans Marcel's Frogs!  <<<")
 
-    arcade = get_arcadebuttons(pressed_flag=True)
+    arcade = get_arcadebuttons()
     arcade.reset_flags()
     arcade.off()
 
-    cp = get_controlpanel(pressed_flag=True)
+    cp = get_controlpanel()
     cp.reset_flags()
 
     while 'select' not in cp.pressed:

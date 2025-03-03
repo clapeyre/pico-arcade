@@ -16,7 +16,7 @@ async def buzz(color):
         await asyncio.create_task(buzzer.tone(int(tone), 60, 0.1))
 
 
-async def _mainloop():
+async def _main():
     arcade = get_arcadebuttons()
     arcade.reset_flags()
     arcade.on()
@@ -46,7 +46,7 @@ async def _mainloop():
                 arcade.reset_flags()
                 ready = True
         await asyncio.sleep(0)
-
+        
 
 async def app_buzzer():
     print('  >>>  Welcome to the buzzer!  <<<')
@@ -57,7 +57,7 @@ async def app_buzzer():
     oled.text("Buzz!", 0, 0, 1)
     oled.show()
 
-    main = asyncio.create_task(_mainloop())
+    main = asyncio.create_task(_main())
 
     cp = get_controlpanel()
     cp.reset_flags()

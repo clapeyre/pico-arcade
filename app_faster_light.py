@@ -15,7 +15,7 @@ async def app_faster_light(start_time=2000, accel=0.9):
     oled.show()
 
     score = 0
-    arcade = get_arcadebuttons(pressed_flag=True)
+    arcade = get_arcadebuttons()
     arcade.reset_flags()
     arcade.off()
 
