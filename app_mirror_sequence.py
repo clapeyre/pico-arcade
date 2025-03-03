@@ -3,15 +3,12 @@ import urandom as random
 import uasyncio as asyncio
 
 from drivers.buzzer import Buzzer
-from lib.buttons import (get_arcadebuttons, _ArcadeButtons,
-                         COLORS, get_controlpanel)
+from lib.buttons import get_arcadebuttons, COLORS, get_controlpanel
 
 
 class Board:
     def __init__(self):
-        #self.arcade = _ArcadeButtons(pressed_flag=False)
         self.arcade = get_arcadebuttons()
-        self.buttons = self.arcade.buttons
         self.buzzer = Buzzer()
         self.leds = self.arcade.leds
         self.left = [i for i, c in enumerate(self.arcade.color)
@@ -20,13 +17,9 @@ class Board:
                       if c in ("red", "yellow")]
         self.active = self.left
         self.start_time = time.ticks_ms()
-        self.sounds = [int(110*1.4**i) for i in range(8)]
-        self.pressed = None
-        self._create_mirror()
-        self._press_behavior()
-        self._release_behavior()
+        self.sounds = tuple(int(110*1.4**i) for i in range(len(self.left)))
+        self.currently_pressed = None
 
-    def _create_mirror(self):
         """
         0 4 |  8 12   0 <-> 12
         1 5 |  9 13   1 <-> 13
@@ -36,44 +29,49 @@ class Board:
         self.mirror = {0: 12, 1: 13, 2: 14, 3: 15,
                        4:  8, 5:  9, 6: 10, 7: 11}
         self.mirror.update({v: k for k, v in self.mirror.items()})
+        print('TTT almost done initializing board')
 
-    def _press_behavior(self):
-        """Associate press callback to each button"""
-        for i, but in enumerate(self.buttons):
-            but.press_func(self._press_func, (i,))
+        self._monitor = asyncio.create_task(self.button_sounds())
+        print('TTT board button monitor running')
 
-    def _press_func(self, idx):
-        """Callback when a button is pressed.
-        
-        Tasks: light both mirror LEDs, play a sound.
-        Ignore if an LED is already on.
-        """
-        if ((any([led() for led in self.leds])) or
-            (idx not in self.active) or
-            (self.pressed is not None)):
-            return
-        
+    def play_tone(self, idx):
         sound_nb = idx if idx < 8 else self.mirror[idx]
         self.buzzer.start_tone(self.sounds[sound_nb], 1)
-        self.on(idx)
-        self.pressed = idx
 
-    def _release_behavior(self):
-        """Associate release callback to each button"""
-        for i, but in enumerate(self.buttons):
-            but.release_func(self._release_func, (i,))
-
-    def _release_func(self, idx):
-        """Callback when a button is released.
-        
-        Tasks: turn all buttons off, kill buzzer.
-        """
-        print("Release button called")
-        if idx not in self.active:
-            return
-        self.arcade.off()
+    def end_tone(self):
         self.buzzer.end_tone()
-        self.pressed = None
+
+    async def button_sounds(self):
+        while True:
+            # Active button press
+            if self.currently_pressed is None and self.arcade.pressed:
+               #  print(f"TTT detected button press: {self.arcade.pressed}")
+                pressed = self.arcade.pressed[0]
+                self.arcade.reset_pressed()
+                if pressed in self.active:
+                    self.currently_pressed = pressed
+                    self.play_tone(pressed)
+                    self.on(pressed)
+
+            # if self.arcade.released:
+            #     print(self.arcade.released)
+            #     self.arcade.reset_released()
+
+            # Pressed button release
+            # print(self.currently_pressed, self.arcade.released)
+            if (self.currently_pressed is not None and
+                self.arcade.released_flag[self.currently_pressed]):
+                    # print(f"TTT detected button release: {self.arcade.released}")
+                    self.arcade.reset_released()
+                    self.arcade.off()
+                    self.currently_pressed = None
+                    self.end_tone()
+            await asyncio.sleep_ms(0)
+    
+    def stop(self):
+        self.end_tone()
+        self._monitor.cancel()
+        del self
 
     def blink(self):
         """Blink all the half-board leds (e.g. when you win)"""
@@ -84,16 +82,15 @@ class Board:
         self.leds[idx].on()
         self.leds[self.mirror[idx]].on()
 
-    async def turn_change(self):
-        while self.pressed is not None:
-            await asyncio.sleep_ms(1)
+    def turn_change(self):
         self.active = self.right if self.active == self.left else self.left
-        print("III Turn change:", self.active)
+        self.arcade.reset_flags()
+        # print("III Turn change. Now:", self.active)
 
 
 class Sequence:
-    def __init__(self, board):
-        self.board = board
+    def __init__(self, mirror):
+        self.mirror = mirror
         self._sequence = []
     
     def __len__(self):
@@ -103,7 +100,7 @@ class Sequence:
         return self._sequence
 
     def _mirror(self, val):
-        return val if val < 8 else self.board.mirror[val]
+        return val if val < 8 else self.mirror[val]
 
     def check(self, seq):
         if len(seq) > len(self):
@@ -127,7 +124,6 @@ async def app_mirror_sequence():
     print(' WELCOME to Mirror Sequence! ')
 
     arcade = get_arcadebuttons()
-    board = Board()
     arcade.off()
 
     cp = get_controlpanel()
@@ -138,36 +134,43 @@ async def app_mirror_sequence():
         arcade.leds[idx].on()
     await asyncio.sleep(1)
     arcade.off()
+    arcade.reset_flags()
 
-    sequence = Sequence(board)
+    board = Board()
+    sequence = Sequence(board.mirror)
+    # print(board.__dict__)
 
     # Start!
     guess = []
+    # print("TTT start mainloop")
     while True:
-        # Abort
-        if 'select' in cp.pressed:
+        if 'select' in cp.pressed:  # Abort
+            board.stop()
             await asyncio.sleep_ms(0)
             return
         
-        if board.pressed:
-            pressed = int(board.pressed)
+        if board.currently_pressed is not None:
+            pressed = int(board.currently_pressed)
+            # Don't move forward until button is released
+            while board.currently_pressed is not None:
+                await asyncio.sleep_ms(1)
+
             guess.append(pressed)
-            board.pressed = None
             print("Compare:", guess, sequence)
 
-            if not sequence.check(guess): # You lose!
-                await board.turn_change()
+            if not sequence.check(guess):  # You lose!
+                board.end_tone()
+                board.turn_change()
                 break
 
             # Added one to current sequence, change turn
             if len(guess) > len(sequence):
                 sequence.append(pressed)
                 guess = []
-                await board.turn_change()
+                board.turn_change()
                 board.arcade.on()
                 await asyncio.sleep_ms(300)
                 board.arcade.off()
-                continue
 
         await asyncio.sleep_ms(0)
 
@@ -185,7 +188,7 @@ async def app_mirror_sequence():
         arcade.leds[idx].on()
     await asyncio.sleep_ms(1000)
 
-    arcade.pressed_flag_behaviour()
+    board.stop()
     arcade.reset_flags()
     while True:
         if arcade.pressed:
