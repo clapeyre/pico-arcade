@@ -1,20 +1,49 @@
 import utime as time
 import uasyncio as asyncio
-from lib.buttons import button_init, on, off, get_arcadebuttons, COLORS
+from drivers.buzzer import Buzzer
 from drivers.sh1107 import SH1107_I2C
-from app_memory import app_memory
+from lib.buttons import get_arcadebuttons, get_controlpanel, COLORS
+from app_sequence import app_sequence
 from app_light_chaser import app_light_chaser
+from app_light_chaser_1v1 import app_light_chaser_1v1
 from app_buzzer import app_buzzer
 from app_marcels_quest import app_marcels_quest
 from app_marcels_frogs import app_marcels_frogs
-from app_faster_light import app_faster_light
+from app_marcel_reflex import app_marcel_reflex
 from app_symmetry import app_symmetry
 from app_memory_sound import app_memory_sound
 from app_whackamole import app_whackamole
+from app_mirror_fight import app_mirror_fight
+from app_mirror_sequence import app_mirror_sequence
+from app_idle import app_idle
+
+# BOARD
+#  0  4  8 12
+#  1  5  9 13
+#  2  6 10 14
+#  3  7 11 15
+GAMES = [
+    (app_light_chaser, {}),                    # 0
+    (app_light_chaser, {'hardcore': True}),    # 1
+    (app_sequence, {'sound_level': 0}),        # 2
+    (app_sequence, {}),                        # 3
+    (app_memory_sound, {}),                    # 4
+    (app_whackamole, {}),                      # 5
+    (app_light_chaser_1v1, {}),                # 6
+    (app_mirror_fight, {}),                    # 7
+    (app_marcels_quest, {}),                   # 8
+    (app_marcels_frogs, {}),                   # 9
+    (app_marcel_reflex, {}),                        # 10
+    (app_symmetry, {}),                        # 11
+    (app_buzzer, {}),                          # 12
+    (app_mirror_sequence, {}),                 # 13
+    (None, {}),                                # 14
+    (app_idle, {}),                            # 15
+]
 
 
-async def start_sequence():
-    arcade = get_arcadebuttons(pressed_flag=True)
+def flash_start():
+    arcade = get_arcadebuttons()
     arcade.on()
     time.sleep_ms(500)
     for color in COLORS:
@@ -23,61 +52,71 @@ async def start_sequence():
         time.sleep_ms(500)
     print(" >> Go Go Go! <<")
 
-async def app_menu():
-    buttons, leds = button_init()
+
+async def play(game):
+    func, kwargs = GAMES[game]
+    if func is None:
+        return None
+
+    flash_start()
+    res = func(**kwargs)
+
+    async def f(): pass
+    print(type(f()))
+    if isinstance(res, type(f())):
+        print("XXX This game is async")
+        await res
+
+
+async def flash_all():
+    arcade = get_arcadebuttons()
+    for _ in range(2):
+        arcade.off()
+        await asyncio.sleep_ms(200)
+        arcade.on()
+        await asyncio.sleep_ms(200)
+    arcade.off()
+    for i, (func, _) in enumerate(GAMES):
+        if func is not None:
+            arcade.leds[i].on()
+
+
+def oled_menu():
     oled = SH1107_I2C()
+    oled.fill(0)
+    oled.text(' -- Menu --', 0, 0, 1)
+    oled.text('Select a Game', 10, 0, 1)
+    oled.show()
+    print(" > Main Menu")
 
-    while True:
-        oled.fill(0)
-        oled.text('Menu', 0, 0, 1)
-        oled.show()
-        for _ in range(2):
-            list(map(off, leds))
-            time.sleep_ms(200)
-            list(map(on, leds))
-            time.sleep_ms(200)
-        while all([b.value() for b in buttons]):
-            time.sleep(0.01)
-        if not buttons[0].value():
-            asyncio.run(start_sequence())
-            asyncio.run(app_light_chaser())
-        elif not buttons[1].value():
-            asyncio.run(start_sequence())
-            asyncio.run(app_light_chaser(hardcore=True, nleds=3))
-        elif not buttons[2].value():
-            asyncio.run(start_sequence())
-            app_memory(sound_level=0)
-        elif not buttons[3].value():
-            asyncio.run(start_sequence())
-            app_memory()
-        elif not buttons[4].value():
-            asyncio.run(app_buzzer())
-        elif not buttons[5].value():
-            asyncio.run(start_sequence())
-            asyncio.run(app_whackamole())
-        elif not buttons[6].value():
-            asyncio.run(start_sequence())
-            asyncio.run(app_faster_light())
-        elif not buttons[7].value():
-            asyncio.run(app_symmetry())
 
-        # Marcel's games
-        elif not buttons[8].value():
-            asyncio.run(app_marcels_quest())
-        elif not buttons[9].value():
-            asyncio.run(app_marcels_frogs())
+async def app_menu():
+    arcade = get_arcadebuttons()
+    cp = get_controlpanel()
 
-        elif not buttons[12].value():
-            asyncio.run(app_memory_sound())
+    while True:  # Global loop
+        oled_menu()
+        await flash_all()
+        arcade.reset_flags()
+        cp.reset_flags()
 
-        elif not buttons[15].value():
-            list(map(off, leds))
-            return
+        while True:  # Single game loop
+            if 'select' in cp.pressed:
+                return
 
-        oled.text_wrap("Touchez un bouton pour revenir au menu", 7)
-        oled.show()
-        while all([b.value() for b in buttons]):
-            time.sleep(0.05)
+            if arcade.pressed:
+                print("XXX playing", arcade.pressed[0])
+                await play(arcade.pressed[0])
+                print("XXX Done playing")
+                cleanup()
+                break
+            
+            await asyncio.sleep_ms(0)
+
+
+def cleanup():
+    Buzzer().end_tone()
+    get_arcadebuttons().off()
 
 if __name__ == '__main__':
     asyncio.run(app_menu())
