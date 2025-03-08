@@ -15,6 +15,7 @@ from app_memory_sound import app_memory_sound
 from app_whackamole import app_whackamole
 from app_mirror_fight import app_mirror_fight
 from app_mirror_sequence import app_mirror_sequence
+from app_tug_of_war import app_tug_of_war
 from app_idle import app_idle
 
 # BOARD
@@ -37,7 +38,7 @@ GAMES = [
     (app_light_chaser_1v1, {}),                # 8
     (app_mirror_sequence, {}),                 # 9
     (app_mirror_fight, {}),                    # 10
-    (None, {}),                                # 11
+    (app_tug_of_war, {}),                      # 11
     # Utils
     (app_buzzer, {}),                          # 12
     (app_idle, {}),                            # 13
