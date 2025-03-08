@@ -23,23 +23,30 @@ from app_idle import app_idle
 #  2  6 10 14
 #  3  7 11 15
 GAMES = [
-    (app_light_chaser, {}),                    # 0
-    (app_light_chaser, {'hardcore': True}),    # 1
-    (app_sequence, {'sound_level': 0}),        # 2
-    (app_sequence, {}),                        # 3
-    (app_memory_sound, {}),                    # 4
-    (app_whackamole, {}),                      # 5
-    (app_light_chaser_1v1, {}),                # 6
-    (app_mirror_fight, {}),                    # 7
-    (app_marcels_quest, {}),                   # 8
-    (app_marcels_frogs, {}),                   # 9
-    (app_marcel_reflex, {}),                        # 10
-    (app_symmetry, {}),                        # 11
+    # Hard solo games
+    (app_light_chaser, {'hardcore': True}),    # 0
+    (app_sequence, {}),                        # 1
+    (app_memory_sound, {}),                    # 2
+    (app_whackamole, {}),                      # 3
+    # Easy solo games
+    (app_marcels_quest, {}),                   # 4
+    (app_marcels_frogs, {}),                   # 5
+    (app_marcel_reflex, {}),                   # 6
+    (app_symmetry, {}),                        # 7
+    # Multiplayer games
+    (app_light_chaser_1v1, {}),                # 8
+    (app_mirror_sequence, {}),                 # 9
+    (app_mirror_fight, {}),                    # 10
+    (None, {}),                                # 11
+    # Utils
     (app_buzzer, {}),                          # 12
-    (app_mirror_sequence, {}),                 # 13
+    (app_idle, {}),                            # 13
     (None, {}),                                # 14
-    (app_idle, {}),                            # 15
+    (None, {}),                                # 15
 ]
+
+#(app_light_chaser, {'hardcore': True}      # 1
+#(app_sequence, {'sound_level': 0}),        # 2
 
 
 def flash_start():
