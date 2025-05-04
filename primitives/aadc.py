@@ -3,7 +3,7 @@
 # Copyright (c) 2020 Peter Hinch
 # Released under the MIT License (MIT) - see LICENSE file
 
-import uasyncio as asyncio
+import asyncio
 import io
 
 MP_STREAM_POLL_RD = const(1)

@@ -1,4 +1,4 @@
-import uasyncio as asyncio
+import asyncio
 import utime as time
 import urandom as random
 from lib.buttons import get_arcadebuttons, get_controlpanel

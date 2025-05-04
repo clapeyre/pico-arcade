@@ -1,5 +1,5 @@
 import utime as time
-import uasyncio as asyncio
+import asyncio
 import urandom as random
 from lib.buttons import get_arcadebuttons, get_controlpanel
 
@@ -71,59 +71,6 @@ async def _test():
 #  2  6 10 14
 #  3  7 11 15
 
-
-async def pharmacy_blink_circle(inwards=False):
-    circles = [
-        [5, 6, 9, 10],
-        [i for i in range(16) if i not in [5, 6, 9, 10]]]
-    arcade = get_arcadebuttons()
-    arcade.off()
-
-    sequence = [] + circles
-    if inwards:
-        sequence = sequence[::-1]
-    for seq in sequence:
-        for idx in seq:
-            arcade.leds[idx].on()
-        await asyncio.sleep_ms(200)
-        arcade.off()
-
-
-async def pharmacy_blink_spiral(inwards=False):
-    sequence = [0, 4, 8, 12, 13, 14, 15, 11, 7, 3, 2, 1, 5, 9, 10, 6]
-    arcade = get_arcadebuttons()
-    arcade.off()
-
-    direction = -1 if inwards else 1
-    for idx in sequence[::direction]:
-        arcade.leds[idx].on()
-        await asyncio.sleep_ms(50)
-    for idx in sequence[::direction]:
-        arcade.leds[idx].off()
-        await asyncio.sleep_ms(50)
-
-
-async def pharmacy_blink_cross(clockwise=True):
-    center = [5, 6, 9, 10]
-    branches = [
-        [0, 12, 15, 3],
-        [4, 13, 11, 2],
-        [8, 14, 7, 1],
-    ]
-    arcade = get_arcadebuttons()
-    for idx in range(16):
-        if idx in center:
-            arcade.leds[idx].on()
-        else:
-            arcade.leds[idx].off()
-
-    direction = 1 if clockwise else -1
-    for branch in branches[::direction]:
-        for idx in branch:
-            arcade.leds[idx].on()
-        await asyncio.sleep_ms(150)
-        for idx in branch:
-            arcade.leds[idx].off()
 
 
 def test():

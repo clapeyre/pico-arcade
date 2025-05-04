@@ -3,7 +3,7 @@
 # Copyright (c) 2018-2021 Peter Hinch
 # Released under the MIT License (MIT) - see LICENSE file
 
-import uasyncio as asyncio
+import asyncio
 import utime as time
 from . import launch
 from primitives.delay_ms import Delay_ms

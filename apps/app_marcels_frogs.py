@@ -1,5 +1,4 @@
-import uasyncio as asyncio
-import utime as time
+import asyncio
 import urandom as random
 from lib.buttons import get_arcadebuttons, get_controlpanel, array_to_index
 from lib.music import Music, SONGS
@@ -61,4 +60,5 @@ async def app_marcels_frogs():
         arcade.reset_flags()
 
 if __name__ == '__main__':
-    asyncio.run(app_marcels_frogs())
+    from lib.test_utils import run_test
+    run_test(app_marcels_frogs)

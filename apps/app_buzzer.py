@@ -1,7 +1,7 @@
-import uasyncio as asyncio
+import asyncio
 import urandom as random
 from drivers.buzzer import Buzzer
-from drivers.sh1107 import SH1107_I2C
+from lib.oled import get_oled
 from lib.buttons import get_arcadebuttons, get_controlpanel
 
 
@@ -51,10 +51,10 @@ async def _main():
 async def app_buzzer():
     print('  >>>  Welcome to the buzzer!  <<<')
 
-    oled = SH1107_I2C()
+    oled = get_oled()
     print("  >>>  Ready to buzz?  <<<")
-    oled.fill(0)
-    oled.text("Buzz!", 0, 0, 1)
+    oled.clear_screen()
+    oled.draw_centered_text("Buzz!", 0)
     oled.show()
 
     main = asyncio.create_task(_main())
@@ -69,4 +69,5 @@ async def app_buzzer():
         await asyncio.sleep_ms(0)
 
 if __name__ == '__main__':
-    asyncio.run(app_buzzer())
+    from lib.test_utils import run_test
+    run_test(app_buzzer)

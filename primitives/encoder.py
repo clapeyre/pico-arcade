@@ -6,7 +6,7 @@
 # This driver is intended for encoder-based control knobs. It is
 # unsuitable for NC machine applications. Please see the docs.
 
-import uasyncio as asyncio
+import asyncio
 from machine import Pin
 
 class Encoder:

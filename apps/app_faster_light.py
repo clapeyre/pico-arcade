@@ -1,17 +1,17 @@
 import utime as time
 import urandom as random
-import uasyncio as asyncio
+import asyncio
 
 from drivers.buzzer import Buzzer
-from drivers.sh1107 import SH1107_I2C
+from lib.oled import get_oled
 from lib.buttons import get_arcadebuttons
 
 async def app_faster_light(start_time=2000, accel=0.9):
-    oled = SH1107_I2C()
+    oled = get_oled()
     print('Bienvenue dans le chasseur de lumière!')
-    oled.fill(0)
-    oled.text("Chasse", 0, 0, 1)
-    oled.text("Lumiere", 0, 10, 1)
+    oled.clear_screen()
+    oled.draw_centered_text("Chasse", 0)
+    oled.draw_centered_text("Lumiere", 10)
     oled.show()
 
     score = 0
@@ -49,10 +49,10 @@ async def app_faster_light(start_time=2000, accel=0.9):
     arcade.off()
     print('\n >>> FINI <<<')
     print(f"\n Score: {score}")
-    oled.fill(0)
-    oled.text('Fini!', 0, 0, 1)
-    oled.text('Score:', 0, 20, 1)
-    oled.text(f'  {score}', 0, 40, 1)
+    oled.clear_screen()
+    oled.draw_centered_text('Fini!', 0)
+    oled.draw_centered_text('Score:', 20)
+    oled.draw_centered_text(f'{score}', 40)
     oled.show()
 
     buzzer = Buzzer()
@@ -61,3 +61,7 @@ async def app_faster_light(start_time=2000, accel=0.9):
         time.sleep_ms(30)
 
     return
+
+if __name__ == '__main__':
+    from lib.test_utils import run_test
+    run_test(app_faster_light)

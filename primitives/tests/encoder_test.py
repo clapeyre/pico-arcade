@@ -4,7 +4,7 @@
 # Released under the MIT License (MIT) - see LICENSE file
 
 from machine import Pin
-import uasyncio as asyncio
+import asyncio
 from primitives.encoder import Encoder
 
 

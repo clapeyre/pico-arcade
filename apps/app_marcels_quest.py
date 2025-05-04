@@ -1,4 +1,4 @@
-import uasyncio as asyncio
+import asyncio
 import utime as time
 import urandom as random
 from drivers.buzzer import Buzzer
@@ -58,4 +58,5 @@ def menu_marcels_quest():
             
 
 if __name__ == '__main__':
-    asyncio.run(app_marcels_quest())
+    from lib.test_utils import run_test
+    run_test(app_marcels_quest)

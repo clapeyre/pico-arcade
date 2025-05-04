@@ -1,21 +1,21 @@
 import utime as time
 import urandom as random
-import uasyncio as asyncio
+import asyncio
 from drivers.buzzer import Buzzer
-from drivers.sh1107 import SH1107_I2C
+from lib.oled import get_oled
 from lib.buttons import get_arcadebuttons
 from lib.score import DigitalScorer
 
 
 async def app_light_chaser(hardcore=False, timer=20_000, nleds=3):
-    oled = SH1107_I2C()
+    oled = get_oled()
     print('Bienvenue dans le chasseur de lumière!')
-    oled.fill(0)
-    oled.text("Chasse", 0, 0, 1)
-    oled.text("Lumiere", 0, 10, 1)
+    oled.clear_screen()
+    oled.draw_centered_text("Chasse", 0)
+    oled.draw_centered_text("Lumiere", 10)
     if hardcore:
         print('Mode hardcore activé')
-        oled.text("Hardcore", 0, 20, 1)
+        oled.draw_centered_text("Hardcore", 20)
     oled.show()
     score = 0
     start = time.ticks_ms()
@@ -65,10 +65,10 @@ async def app_light_chaser(hardcore=False, timer=20_000, nleds=3):
     arcade.off()
     print('\n >>> FINI <<<')
     print(f"\n Score: {score}")
-    oled.fill(0)
-    oled.text('Fini!', 0, 0, 1)
-    oled.text('Score:', 0, 20, 1)
-    oled.text(f'  {score}', 0, 40, 1)
+    oled.clear_screen()
+    oled.draw_centered_text('Fini!', 0)
+    oled.draw_centered_text('Score:', 20)
+    oled.draw_centered_text(f'{score}', 40)
     oled.show()
 
     buzzer = Buzzer()
@@ -85,15 +85,37 @@ def menu_light_chaser():
     asyncio.run(app_light_chaser())
 
 async def test():
-    while True:
-        asyncio.run(app_light_chaser(timer=1000))
-        time.sleep(1)
-        print('monitor restart')
+    try:
+        while True:
+            # Run the game with a short timer for testing
+            await app_light_chaser(timer=1000)
+            print('Game completed, waiting for button press or timeout...')
+            
+            # Setup arcade buttons
+            arcade = get_arcadebuttons()
+            arcade.reset_flags()
+            
+            # Wait for button press with timeout
+            start_time = time.ticks_ms()
+            while not arcade.pressed:
+                if time.ticks_diff(time.ticks_ms(), start_time) > 5000:  # 5 second timeout
+                    print('Timeout reached, restarting game...')
+                    break
+                await asyncio.sleep_ms(10)
+            
+            # Cleanup
+            arcade.off()
+            arcade.reset_flags()
+            
+    except KeyboardInterrupt:
+        print('Test interrupted by user')
+    finally:
+        # Ensure cleanup happens even if interrupted
         arcade = get_arcadebuttons()
+        arcade.off()
         arcade.reset_flags()
-        while not arcade.pressed:
-            await asyncio.sleep_ms(1)
-        # print(arcade.pressed)
+        print('Test cleanup completed')
 
 if __name__ == '__main__':
-    asyncio.run(test())
+    from lib.test_utils import run_test
+    run_test(app_light_chaser, timer=1000)

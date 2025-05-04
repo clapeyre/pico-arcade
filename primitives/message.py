@@ -8,7 +8,7 @@
 # from primitives.message import Message
 
 try:
-    import uasyncio as asyncio
+    import asyncio
 except ImportError:
     import asyncio
 

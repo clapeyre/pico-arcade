@@ -1,6 +1,6 @@
 import utime as time
 import urandom as random
-import uasyncio as asyncio
+import asyncio
 from drivers.buzzer import Buzzer
 from lib.buttons import get_arcadebuttons, get_controlpanel, off
 from lib.score import DigitalScorer
@@ -95,4 +95,5 @@ def test():
 
 
 if __name__ == '__main__':
-    test()
+    from lib.test_utils import run_test
+    run_test(app_whackamole)

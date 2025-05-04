@@ -1,6 +1,6 @@
 from machine import Pin, PWM
 import utime as time
-import uasyncio as asyncio
+import asyncio
 from lib.tools import singleton
 
 

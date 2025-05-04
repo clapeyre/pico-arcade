@@ -1,6 +1,6 @@
 import utime as time
 import urandom as random
-import uasyncio as asyncio
+import asyncio
 from drivers.buzzer import Buzzer
 from lib.buttons import get_arcadebuttons, COLORS, get_controlpanel
 from lib.score import DigitalScorer
@@ -130,4 +130,5 @@ async def test():
         # print(arcade.pressed)
 
 if __name__ == '__main__':
-    asyncio.run(test())
+    from lib.test_utils import run_test
+    run_test(app_light_chaser_1v1)

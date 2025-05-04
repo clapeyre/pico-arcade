@@ -4,7 +4,7 @@
 # Released under the MIT License (MIT) - see LICENSE file
 
 try:
-    import uasyncio as asyncio
+    import asyncio
 except ImportError:
     import asyncio
 

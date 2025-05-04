@@ -1,5 +1,5 @@
 from machine import Pin, I2C
-import uasyncio as asyncio
+import asyncio
 import utime as time
 from primitives.pushbutton import Pushbutton
 from drivers.mcp23017 import MCP23017
@@ -178,9 +178,9 @@ class _ArcadeButtons(_ButtonGroup):
 
 class _ControlPanel(_ButtonGroup):
     def __init__(self):
-        pins = [3, 6, 7, 8, 9]
+        pins = [0, 1, 2, 3, 4]
         self.names = "up select right down left".split()
-        self.buttons = [self.up, self.select, self.right, self.left, self.down] = [
+        self.buttons = [self.up, self.select, self.right, self.down, self.left] = [
             Pushbutton(Pin(pin, Pin.IN, Pin.PULL_UP))
             for pin in pins]
         self.reset_flags()
@@ -245,16 +245,8 @@ def blink(led, up, down, times):
 async def _test():
     arcade = get_arcadebuttons()
     arcade.off()
-    asyncio.create_task(arcade.run(5))
     cp = get_controlpanel()
-    asyncio.create_task(cp.run(5))
-
-    #async def _debug():
-    #    arcade = get_arcadebuttons(pressed_flag=True)
-    #    while True:
-    #        print([led.value() for led in arcade.leds])
-    #        await asyncio.sleep_ms(1000)
-    #asyncio.create_task(_debug())
+    cp.reset_flags()
 
     print("  >>>  Please test any button(s)  <<")
     while True:

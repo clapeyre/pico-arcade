@@ -6,7 +6,7 @@ WAITING -> PLAYING_FIRST -> WAITING_SECOND
  v   |         v   |           |
 END   ---- PLAYING_SECOND   <--
 """
-import uasyncio as asyncio
+import asyncio
 import urandom as random
 from lib.buttons import get_arcadebuttons, get_controlpanel
 from lib.music import Music, SONGS

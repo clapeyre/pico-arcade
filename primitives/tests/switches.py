@@ -13,7 +13,7 @@ from machine import Pin
 from lib.buttons import button_init, on, off
 from primitives.switch import Switch
 from primitives.pushbutton import Pushbutton
-import uasyncio as asyncio
+import asyncio
 
 helptext = '''
 Test using switch or pushbutton between X1 and gnd.

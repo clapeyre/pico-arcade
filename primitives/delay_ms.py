@@ -5,7 +5,7 @@
 # Copyright (c) 2018-2021 Peter Hinch
 # Released under the MIT License (MIT) - see LICENSE file
 
-import uasyncio as asyncio
+import asyncio
 from utime import ticks_add, ticks_diff, ticks_ms
 from . import launch
 

@@ -1,8 +1,8 @@
-import uasyncio as asyncio
+import asyncio
 import utime as time
 import urandom as random
 from lib.buttons import get_arcadebuttons, get_controlpanel, array_to_index, index_to_array
-from drivers.sh1107 import SH1107_I2C
+from lib.oled import get_oled
 from lib.music import Music, SONGS
 
 
@@ -46,9 +46,9 @@ async def app_symmetry():
     cp = get_controlpanel()
     cp.reset_flags()
 
-    oled = SH1107_I2C()
-    oled.fill(0)
-    oled.text('Symmetry', 0, 0, 1)
+    oled = get_oled()
+    oled.clear_screen()
+    oled.draw_centered_text('Symmetry', 0)
     oled.show()
 
     sym = Symmetry()
@@ -73,4 +73,5 @@ async def app_symmetry():
         await asyncio.create_task(song.play())
 
 if __name__ == '__main__':
-    asyncio.run(app_symmetry())
+    from lib.test_utils import run_test
+    run_test(app_symmetry)

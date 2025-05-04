@@ -1,10 +1,10 @@
 from drivers.buzzer import Buzzer
-from drivers.sh1107 import SH1107_I2C
+from lib.oled import get_oled
 from lib.buttons import button_init, on, off
 from lib.score import DigitalScorer
 import utime as time
 import urandom as random
-import uasyncio as asyncio
+import asyncio
 
 def flash(led, tone, lvl):
     buzzer = Buzzer()
@@ -18,9 +18,9 @@ def flash(led, tone, lvl):
 def app_memory(sound_level=1):
     print("Bienvenue dans le memory 2.0!")
     buzzer = Buzzer()
-    oled = SH1107_I2C()
-    oled.fill(0)
-    oled.text('Memory', 0, 0, 1)
+    oled = get_oled()
+    oled.clear_screen()
+    oled.draw_centered_text('Memory', 0)
     oled.show()
     buttons, leds = button_init(16)
     buttons = [buttons[i] for i in [3, 7, 11, 15]]
@@ -50,10 +50,10 @@ def app_memory(sound_level=1):
                         buzzer.end_tone()
                         print('\n >>> Perdu! <<<')
                         print(f'Score: {len(seq) - 1}')
-                        oled.fill(0)
-                        oled.text('Perdu!', 0, 0, 1)
-                        oled.text('Score:', 0, 20, 1)
-                        oled.text(f'  {len(seq) - 1}', 0, 40, 1)
+                        oled.clear_screen()
+                        oled.draw_centered_text('Perdu!', 0)
+                        oled.draw_centered_text('Score:', 20)
+                        oled.draw_centered_text(f'{len(seq) - 1}', 40)
                         oled.show()
                         d = DigitalScorer()
                         asyncio.run(d.interruptable_score(len(seq) - 1))
@@ -67,10 +67,6 @@ def app_memory(sound_level=1):
         time.sleep_ms(200)
 
 if __name__ == '__main__':
-    buttons, leds = button_init()
-    while True:
-        app_memory()
-        time.sleep(0.3)
-        while buttons[0].value():
-            time.sleep(0.01)
+    from lib.test_utils import run_test
+    run_test(app_memory)
             

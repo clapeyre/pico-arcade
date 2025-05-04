@@ -5,7 +5,7 @@
 # Now uses Event rather than polling.
 
 try:
-    import uasyncio as asyncio
+    import asyncio
 except ImportError:
     import asyncio
 

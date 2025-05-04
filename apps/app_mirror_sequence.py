@@ -1,6 +1,6 @@
 import utime as time
 import urandom as random
-import uasyncio as asyncio
+import asyncio
 
 from drivers.buzzer import Buzzer
 from lib.buttons import get_arcadebuttons, COLORS, get_controlpanel

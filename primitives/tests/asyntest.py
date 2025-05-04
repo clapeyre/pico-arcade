@@ -10,7 +10,7 @@
 # from primitives.tests.asyntest import test
 
 try:
-    import uasyncio as asyncio
+    import asyncio
 except ImportError:
     import asyncio
 
